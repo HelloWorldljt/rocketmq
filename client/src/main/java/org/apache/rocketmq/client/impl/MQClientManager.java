@@ -45,7 +45,10 @@ public class MQClientManager {
     }
 
     public MQClientInstance getOrCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
+        //根据ip构建clientId 格式：IP@instanceName@unitName
         String clientId = clientConfig.buildMQClientId();
+        //MQClientInstance 是饿汉式单例 在一个JVM里启动了多个Producer时，且没有设置instanceName和unitName，
+        // 那么这两个Producer会公用一个MQClientInstance，发送的消息会路由到同一个集群
         MQClientInstance instance = this.factoryTable.get(clientId);
         if (null == instance) {
             instance =

@@ -264,10 +264,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * to invoke this method before sending or querying messages. </strong> </p>
      *
      * @throws MQClientException if there is any unexpected error.
+     * producer 启动入口 {@link TransactionMQProducer#start() 事物消息启动入口}
      */
     @Override
     public void start() throws MQClientException {
+        //设置命名空间
         this.setProducerGroup(withNamespace(this.producerGroup));
+        //启动
         this.defaultMQProducerImpl.start();
         if (null != traceDispatcher) {
             try {
@@ -280,6 +283,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * This method shuts down this producer instance and releases related resources.
+     * 关闭producer
      */
     @Override
     public void shutdown() {
