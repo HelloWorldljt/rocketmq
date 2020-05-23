@@ -132,24 +132,25 @@ public class MQClientInstance {
         this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());
         this.nettyClientConfig.setUseTLS(clientConfig.isUseTLS());
         this.clientRemotingProcessor = new ClientRemotingProcessor(this);
+        //Netty 中注册接收请求的处理器。
         this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, this.clientRemotingProcessor, rpcHook, clientConfig);
-
+        //如果用户设置了NameServer 地址则设置上
         if (this.clientConfig.getNamesrvAddr() != null) {
             this.mQClientAPIImpl.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());
             log.info("user specified name server address: {}", this.clientConfig.getNamesrvAddr());
         }
-
+        // 客户端ID
         this.clientId = clientId;
-
+        //创建 MQAdminImpl 对象进行和 NameServer 进行交互，比如创建Topic、获取 Queue等
         this.mQAdminImpl = new MQAdminImpl(this);
-
+        // 创建 拉消息 服务线程
         this.pullMessageService = new PullMessageService(this);
-
+        //创建 动态负载均衡服务线程:根据负载均衡策略动态控制consumerqueue 和 consumer 之间的负载，很有意思的设计
         this.rebalanceService = new RebalanceService(this);
-
+        //创建 DefaultMQProducer, TODO 为什么要再创建一遍？？？
         this.defaultMQProducer = new DefaultMQProducer(MixAll.CLIENT_INNER_PRODUCER_GROUP);
         this.defaultMQProducer.resetClientConfig(clientConfig);
-
+        //开启 Comsumer 统计服务
         this.consumerStatsManager = new ConsumerStatsManager(this.scheduledExecutorService);
 
         log.info("Created a new client Instance, InstanceIndex:{}, ClientID:{}, ClientConfig:{}, ClientVersion:{}, SerializerType:{}",
@@ -230,18 +231,25 @@ public class MQClientInstance {
                 case CREATE_JUST:
                     this.serviceState = ServiceState.START_FAILED;
                     // If not specified,looking address from name server
+                    // 如果配置NameServer地址,则从默认服务器地址中获取（该地址不可改变），
+                    // 能不配置就不配置，让producer 自己获取，从而达到动态增加和删除NameServer服务
                     if (null == this.clientConfig.getNamesrvAddr()) {
                         this.mQClientAPIImpl.fetchNameServerAddr();
                     }
                     // Start request-response channel
+                    // 启动 Netty 客户端服务
                     this.mQClientAPIImpl.start();
                     // Start various schedule tasks
+                    // 开启多个定时任务
                     this.startScheduledTask();
                     // Start pull service
+                    //开启拉模式消息消费线程服务
                     this.pullMessageService.start();
                     // Start rebalance service
+                    //开启消费负载均衡服务
                     this.rebalanceService.start();
                     // Start push service
+                    //TODO 循环调用，什么鬼？  这段代码应该可以删除
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
                     log.info("the client factory [{}] start OK", this.clientId);
                     this.serviceState = ServiceState.RUNNING;
@@ -255,6 +263,7 @@ public class MQClientInstance {
     }
 
     private void startScheduledTask() {
+        //如果namesrv 为空，则开启定时拉去namesrv 定时任务
         if (null == this.clientConfig.getNamesrvAddr()) {
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -268,7 +277,7 @@ public class MQClientInstance {
                 }
             }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
         }
-
+        //定时的从 NameServer 中获取 Topic、broker、queue 相关信息
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -281,6 +290,7 @@ public class MQClientInstance {
             }
         }, 10, this.clientConfig.getPollNameServerInterval(), TimeUnit.MILLISECONDS);
 
+        // 定时清理无效的Broker，并向所有的Broker 发送心跳数据
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -294,6 +304,7 @@ public class MQClientInstance {
             }
         }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
 
+        // 定时的持久化 Consumer 端消费每个 queue的 offset 数据
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -306,6 +317,7 @@ public class MQClientInstance {
             }
         }, 1000 * 10, this.clientConfig.getPersistConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
 
+        // 调整消费端的线程数 没啥用，代码都被注释掉了
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override

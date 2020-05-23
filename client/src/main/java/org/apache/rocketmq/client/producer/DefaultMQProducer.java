@@ -73,21 +73,25 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * Just for testing or demo program
+     * Topic 名字，默认为“TBW102” 自动创建topic 时使用
      */
     private String createTopicKey = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
 
     /**
      * Number of queues to create per default topic.
+     * 创建 Topic 默认的4个队列，自动创建topic开启时使用
      */
     private volatile int defaultTopicQueueNums = 4;
 
     /**
      * Timeout for sending messages.
+     * 发送消息超时时间
      */
     private int sendMsgTimeout = 3000;
 
     /**
      * Compress message body threshold, namely, message body larger than 4k will be compressed on default.
+     * 当发送的消息大于 4K 时，开始压缩消息。
      */
     private int compressMsgBodyOverHowmuch = 1024 * 4;
 
@@ -95,6 +99,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Maximum number of retry to perform internally before claiming sending failure in synchronous mode. </p>
      *
      * This may potentially cause message duplication which is up to application developers to resolve.
+     * 同步发送消息，发送失败时再尝试发送2次数
      */
     private int retryTimesWhenSendFailed = 2;
 
@@ -102,16 +107,19 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Maximum number of retry to perform internally before claiming sending failure in asynchronous mode. </p>
      *
      * This may potentially cause message duplication which is up to application developers to resolve.
+     * 异步发送消息，发送失败时再尝试发送2次数
      */
     private int retryTimesWhenSendAsyncFailed = 2;
 
     /**
      * Indicate whether to retry another broker on sending failure internally.
+     * 发送broker消息存储失败时，是否尝试去试发送其他的broker
      */
     private boolean retryAnotherBrokerWhenNotStoreOK = false;
 
     /**
      * Maximum allowed message size in bytes.
+     * 消息大小最大4M
      */
     private int maxMessageSize = 1024 * 1024 * 4; // 4M
 
@@ -264,6 +272,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * to invoke this method before sending or querying messages. </strong> </p>
      *
      * @throws MQClientException if there is any unexpected error.
+     *
+     */
+    /**
      * producer 启动入口 {@link TransactionMQProducer#start() 事物消息启动入口}
      */
     @Override
